@@ -33,6 +33,15 @@ RUN touch crates/solax-api/src/lib.rs server/src/main.rs \
 # Test image. A side branch: the Alpine stage below does not copy from it,
 # so `docker build .` still ends on the release image.
 FROM rust:1-alpine AS test
+# musl-dev is what the bundled SQLite needs to compile.
+RUN apk add --no-cache musl-dev
+WORKDIR /build
+COPY Cargo.toml Cargo.lock ./
+COPY crates crates
+COPY server server
+# The dependency tree is baked here, so a later test run does not need a
+# host toolchain or a populated host cargo cache.
+RUN cargo fetch
 
 # Runtime stage. No X server, no Python, no fonts: the UI is a web page now.
 FROM alpine:3.22

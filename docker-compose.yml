@@ -27,3 +27,10 @@ services:
       - ./server/metrics.toml:/app/metrics.toml:ro,z
 
     restart: unless-stopped
+
+  # One-shot checks. No host network and no mount of the live database,
+  # config, or metrics file, so this cannot open the inverter setup.
+  test:
+    build:
+      context: .
+      target: test
