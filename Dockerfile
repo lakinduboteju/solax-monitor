@@ -30,6 +30,10 @@ COPY --from=ui /build/ui/dist ui/dist
 RUN touch crates/solax-api/src/lib.rs server/src/main.rs \
  && cargo build --release -p solax-server
 
+# Test image. A side branch: the Alpine stage below does not copy from it,
+# so `docker build .` still ends on the release image.
+FROM rust:1-alpine AS test
+
 # Runtime stage. No X server, no Python, no fonts: the UI is a web page now.
 FROM alpine:3.22
 RUN adduser -D -u 10001 solax && mkdir -p /app/solax-data && chown solax /app/solax-data
