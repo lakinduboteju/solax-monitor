@@ -30,6 +30,28 @@ COPY --from=ui /build/ui/dist ui/dist
 RUN touch crates/solax-api/src/lib.rs server/src/main.rs \
  && cargo build --release -p solax-server
 
+# Test image. A side branch: the Alpine stage below does not copy from it,
+# so `docker build .` still ends on the release image.
+FROM rust:1-alpine AS test
+# musl-dev is what the bundled SQLite needs to compile.
+RUN apk add --no-cache musl-dev
+WORKDIR /build
+COPY Cargo.toml Cargo.lock ./
+COPY crates crates
+COPY server server
+# The dependency tree is baked here, so a later test run does not need a
+# host toolchain or a populated host cargo cache.
+RUN cargo fetch
+# Node 26 from the ui stage, for npm test and npm run check. Only the
+# binary and npm: copying all of /usr/local would replace Cargo, which
+# lives on that path in this image.
+COPY --from=ui /usr/local/bin/node /usr/local/bin/node
+COPY --from=ui /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/npm
+RUN ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+ && ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+COPY ui ui
+COPY --from=ui /build/ui/node_modules ui/node_modules
+
 # Runtime stage. No X server, no Python, no fonts: the UI is a web page now.
 FROM alpine:3.22
 RUN adduser -D -u 10001 solax && mkdir -p /app/solax-data && chown solax /app/solax-data
