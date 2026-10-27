@@ -28,9 +28,11 @@ services:
 
     restart: unless-stopped
 
-  # One-shot checks. No host network and no mount of the live database,
-  # config, or metrics file, so this cannot open the inverter setup.
+  # One-shot checks. The profile keeps this out of `docker compose up`,
+  # so that command still builds only the release image. No host network
+  # and no mount of the live database, config, or metrics file.
   test:
+    profiles: ["test"]
     build:
       context: .
       target: test
